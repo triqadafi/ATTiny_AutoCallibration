@@ -1,0 +1,14 @@
+{
+  "name": "ATTiny_Callibration",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js COM8"
+  },
+  "author": "triqadafi",
+  "license": "MIT",
+  "dependencies": {
+    "serialport": "^6.0.0"
+  }
+}

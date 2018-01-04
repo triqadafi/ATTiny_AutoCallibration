@@ -8,15 +8,19 @@
 #define SERIAL_RANGE 70
 
 
+#define PIN_INT_A 3
+#define PIN_INT_B 4
+
+
 #define FI_STATE_FINDING 0
 #define FI_STATE_CHECK 1
 
 #define FI_PHASE_OSCCAL_CHANGE 0
-#define FI_PHASE_OSCCAL_CHANGE_TIMEOUT 100
+#define FI_PHASE_OSCCAL_CHANGE_TIMEOUT 50
 #define FI_PHASE_OSCCAL_WAIT 1
 #define FI_PHASE_SERIAL_TRY 2
 #define FI_PHASE_SERIAL_WAIT 3
-#define FI_PHASE_SERIAL_WAIT_TIMEOUT 400
+#define FI_PHASE_SERIAL_WAIT_TIMEOUT 200
 
 SoftwareSerial tinySerial(SERIAL_RX, SERIAL_TX); // RX, TX
 
@@ -41,6 +45,10 @@ void setup() {
   OSCCAL += -1 * SERIAL_RANGE;
   FI_OSCCAL_I = -1 * SERIAL_RANGE;
 
+
+  pinMode(PIN_INT_A, OUTPUT); digitalWrite(PIN_INT_A, LOW);
+  pinMode(PIN_INT_B, OUTPUT); digitalWrite(PIN_INT_B, LOW);
+
   // Start the Serial
   tinySerial.begin(SERIAL_BAUDRATE);
   delay(SERIAL_DELAY);
@@ -54,22 +62,21 @@ void loop() {
     if(FI_STATE == FI_STATE_FINDING){
       OSCCAL += 1;
       FI_OSCCAL_I += 1;
-
-      FI_PHASE++;
-      FI_MS = millis();
     }else if(FI_STATE == FI_STATE_CHECK){
-      FI_OSCCAL_I = FI_OSCCALS[FI_OSCCAL_INDEX];
       while(!FI_OSCCALS[FI_OSCCAL_INDEX]){
-        if(FI_OSCCAL_INDEX < 40){
+        if(FI_OSCCAL_INDEX < 40 - 1){
           FI_OSCCAL_INDEX++;
         }else{
+          digitalWrite(PIN_INT_A, HIGH);
+          digitalWrite(PIN_INT_B, HIGH);
           while(1); // DONE 8)
         }
       }
+      FI_OSCCAL_I = FI_OSCCALS[FI_OSCCAL_INDEX];
       OSCCAL = FI_OSCCAL_FACTORY + FI_OSCCAL_I;
-      FI_PHASE++;
-      FI_MS = millis();
     }
+    FI_PHASE++;
+    FI_MS = millis();
   }
   if(FI_PHASE == FI_PHASE_OSCCAL_WAIT){
     if(millis() - FI_MS > FI_PHASE_OSCCAL_CHANGE_TIMEOUT){
@@ -77,6 +84,8 @@ void loop() {
     }
   }
   if(FI_PHASE == FI_PHASE_SERIAL_TRY){
+    digitalWrite(PIN_INT_A, HIGH);
+    digitalWrite(PIN_INT_B, LOW);
     tinySerial.println();
     tinySerial.println("3913;ABCDEFGHIJKLMNOPQRSTUVWXYZ;1;");
     //tinySerial.println("3913;abcdefghijklmnopqrstuvwxyz;1;");
@@ -86,14 +95,19 @@ void loop() {
   }
   if(FI_PHASE == FI_PHASE_SERIAL_WAIT){
     if(millis() - FI_MS > FI_PHASE_SERIAL_WAIT_TIMEOUT){
-      if(FI_OSCCAL_I < SERIAL_RANGE){
+      if(FI_OSCCAL_I < SERIAL_RANGE && FI_STATE == FI_STATE_FINDING){
         FI_STATE = FI_STATE_FINDING;
       }else if(FI_STATE == FI_STATE_FINDING){
         FI_STATE = FI_STATE_CHECK;
         FI_OSCCAL_INDEX = 0;
+
+        digitalWrite(PIN_INT_A, HIGH);
+        digitalWrite(PIN_INT_B, HIGH);
+        delay(5000);
       }else if(FI_STATE == FI_STATE_CHECK){
         FI_OSCCAL_INDEX++;
       }
+      digitalWrite(PIN_INT_A, LOW);
       FI_PHASE = 0;
     }
   }
@@ -107,14 +121,17 @@ void loop() {
       if(FI_STATE == FI_STATE_FINDING){
         FI_OSCCALS[FI_OSCCAL_INDEX] = FI_OSCCAL_I;
         FI_OSCCAL_INDEX++;
-        tinySerial.print("3913;OSCCAL=");
+        tinySerial.print("3913;OSCCAL;");
         tinySerial.print(FI_OSCCAL_I);
-        tinySerial.println(";0;");
+        tinySerial.println(";0;0;"); // add to check list
       }else if(FI_STATE == FI_STATE_CHECK){
-        tinySerial.print("3913;OSCCAL=");
+        tinySerial.print("3913;OSCCAL;");
         tinySerial.print(FI_OSCCAL_I);
+        tinySerial.print(";");
+        tinySerial.print(FI_OSCCAL_FACTORY + FI_OSCCAL_I);
         tinySerial.println(";1;");
       }
+      digitalWrite(PIN_INT_B, HIGH);
     }
   }
 
