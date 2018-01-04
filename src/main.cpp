@@ -16,11 +16,11 @@
 #define FI_STATE_CHECK 1
 
 #define FI_PHASE_OSCCAL_CHANGE 0
-#define FI_PHASE_OSCCAL_CHANGE_TIMEOUT 50
+#define FI_PHASE_OSCCAL_CHANGE_TIMEOUT 10
 #define FI_PHASE_OSCCAL_WAIT 1
 #define FI_PHASE_SERIAL_TRY 2
 #define FI_PHASE_SERIAL_WAIT 3
-#define FI_PHASE_SERIAL_WAIT_TIMEOUT 200
+#define FI_PHASE_SERIAL_WAIT_TIMEOUT 90
 
 SoftwareSerial tinySerial(SERIAL_RX, SERIAL_TX); // RX, TX
 
@@ -103,7 +103,7 @@ void loop() {
 
         digitalWrite(PIN_INT_A, HIGH);
         digitalWrite(PIN_INT_B, HIGH);
-        delay(5000);
+        delay(1000);
       }else if(FI_STATE == FI_STATE_CHECK){
         FI_OSCCAL_INDEX++;
       }
