@@ -33,6 +33,9 @@ function callibrationPort_open() {
   console.log('CALLIBRATION Port Open. Baud Rate: ' + portBaudRate);
 }
 var FI_OSCCALS = [];
+function fi_remove(array, el){
+  return array.filter(e => e !== el);
+}
 function callibrationPort_data(data) {
   //console.log(">>> " + data);
   var dataArray = data.split(";");
@@ -43,9 +46,13 @@ function callibrationPort_data(data) {
     }
     else if(dataArray[1] == "OSCCAL"){
       if(dataArray[3] == "0" && dataArray[4] == "0"){
-        console.log("Detected! OSCCAL +=" + dataArray[2] + ";");
+        console.log("Detected! OSCCAL += " + dataArray[2] + ";");
+        FI_OSCCALS.push(dataArray[2]);
       }else if(dataArray[4] == "1"){
-        console.log("OSCCAL +=" + dataArray[2] + "; or OSCCAL = " + dataArray[3] + ";");
+        FI_OSCCALS = fi_remove(FI_OSCCALS, dataArray[2])
+        console.log("OSCCAL += " + dataArray[2] + "; or OSCCAL = " + dataArray[3] + ";");
+        var str = FI_OSCCALS.join(";") + ";";
+        console.log(str);
       }
     }
     //console.log(echo);
@@ -59,4 +66,4 @@ function callibrationPort_error(error) {
   console.log('CALLIBRATION Port ' + error);
 }
 
-var timekeeper = setInterval(()=>{}, 10000);
+var timekeeper = setInterval(()=>{}, 100000);
