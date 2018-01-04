@@ -14,7 +14,8 @@ SoftwareSerial tinySerial(SERIAL_RX, SERIAL_TX); // RX, TX
 char FI_USART_BUFFER[64] = {0};              // a string to hold incoming data
 bool FI_USART_RECEIVER_FLAG = false;   // whether the string is complete
 int FACTORY_OSCCAL = 0;
-int FI_OSCCAL[20] = {0};
+int FI_OSCCAL_I = 0;
+int FI_OSCCAL[40] = {0};
 uint8_t FI_OSCCAL_INDEX = 0;
 uint8_t FI_PHASE = 0;
 int16_t FI_I = 0;
@@ -24,9 +25,11 @@ void tinySerialEvent(void);
 
 void setup() {
   // put your setup code here, to run once:
-  //FACTORY_OSCCAL = OSCCAL;
-  OSCCAL -= SERIAL_RANGE;
+  FACTORY_OSCCAL = OSCCAL;
+  OSCCAL += -1 * SERIAL_RANGE;
+  FI_OSCCAL_I = -1 * SERIAL_RANGE;
   FI_I = -1 * SERIAL_RANGE;
+
   // Start the Serial
   tinySerial.begin(SERIAL_BAUDRATE);
   delay(5000);
@@ -40,15 +43,19 @@ void loop() {
     if(FI_I < SERIAL_RANGE){
       OSCCAL += 1;
       FI_I += 1;
+      FI_OSCCAL_I += 1;
       FI_MS = millis();
       FI_PHASE++;
     }else{
       if(FI_OSCCAL[FI_J] != 0){
-        FI_I = FACTORY_OSCCAL + FI_OSCCAL[FI_J];
-        OSCCAL = FI_I;
+        FI_OSCCAL_I = FI_OSCCAL[FI_J];
+        OSCCAL = FACTORY_OSCCAL + FI_OSCCAL_I;
+        FI_OSCCAL_INDEX = FI_J;
         FI_J += 1;
         FI_MS = millis();
         FI_PHASE++;
+      }else{
+        while(1);
       }
     }
   }
@@ -59,10 +66,10 @@ void loop() {
   }
   if(FI_PHASE == 2){
     tinySerial.println();
-    tinySerial.print("3913;OSCCAL +=");
-    tinySerial.print(abs(FI_I));
+    tinySerial.print("3913;OSCCAL += ");
+    tinySerial.print(FI_OSCCAL_I);
     tinySerial.print(";");
-    tinySerial.print(FACTORY_OSCCAL);
+    tinySerial.print(FI_OSCCAL_INDEX);
     tinySerial.println(";");
     tinySerial.println("3913;ABCDEFGHIJKLMNOPQRSTUVWXYZ;");
     FI_MS = millis();
@@ -78,9 +85,17 @@ void loop() {
     char * item = strtok (FI_USART_BUFFER, ";"); //getting first word (uses space & comma as delimeter)
     item = strtok (NULL, ";"); //getting subsequence word
     if(!(strcmp(item,"ABCDEFGHIJKLMNOPQRSTUVWXYZ"))){
-      FI_OSCCAL[FI_OSCCAL_INDEX] = FI_I;
-      FI_OSCCAL_INDEX++;
-      tinySerial.println("3913;OK;1;");
+      if(FI_I < SERIAL_RANGE){
+        FI_OSCCAL[FI_OSCCAL_INDEX] = FI_OSCCAL_I;
+        FI_OSCCAL_INDEX++;
+        tinySerial.println("3913;OK;1;");
+      }else{
+        tinySerial.print("You can use this OSCCAL += ");
+        tinySerial.print(FI_OSCCAL_I);
+        tinySerial.print("; or OSCCAL = ");
+        tinySerial.print(FACTORY_OSCCAL + FI_OSCCAL_I);
+        tinySerial.println(";");
+      }
     }
   }
 
